@@ -1,0 +1,11 @@
+services:
+  docker-mirror-proxy:
+    build:
+      context: .
+    container_name: docker-mirror-proxy
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # در صورت نیاز به تنظیمات بیشتر (مثلاً timeout) می‌توانید environment اضافه کنید
+    environment:
+      - TZ=Asia/Tehran   # تنظیم timezone اختیاری
