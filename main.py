@@ -53,7 +53,8 @@ async def startup():
     asyncio.create_task(periodic_health_check())
 
 
-def get_healthy_mirror() -> Optional[str]:
+# اصلاح شده: تبدیل به async def برای استفاده از async with
+async def get_healthy_mirror() -> Optional[str]:
     """یک میرور سالم به صورت تصادفی برمی‌گرداند"""
     async with health_lock:
         if not healthy_mirrors:
@@ -68,7 +69,9 @@ async def proxy(path: str, request: Request):
     از stream برای بدنه پاسخ استفاده می‌شود تا فایل‌های حجیم (مثل لایه‌های داکر) 
     بدون بارگذاری کامل در حافظه عبور کنند.
     """
-    mirror = get_healthy_mirror()
+    # اصلاح شده: اضافه کردن await چون تابع حالا async است
+    mirror = await get_healthy_mirror()
+    
     if mirror is None:
         return Response(
             content="No healthy mirror available",
@@ -89,11 +92,15 @@ async def proxy(path: str, request: Request):
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             # ارسال درخواست به mirror
+            # نکته: در httpx جدیدتر، ارسال body در حالت stream ممکن است نیاز به تغییرات جزئی داشته باشد
+            # اما روش زیر برای اکثر موارد استاندارد است.
+            # اگر body خالی باشد، بهتر است content=None باشد تا خطا ندهد
+            body = await request.body()
             req = client.build_request(
                 method=request.method,
                 url=target_url,
                 headers=headers,
-                content=await request.body(),
+                content=body if body else None,
             )
             resp = await client.send(req, stream=True)
 
