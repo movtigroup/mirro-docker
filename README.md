@@ -1,32 +1,157 @@
-# قالب وب‌سایت MOVTIGROUP
 
-این مخزن شامل قالب اصلی وب‌سایت شرکت **MOVTIGROUP** است. هدف از ارائه این مخزن، نمایش و مستندسازی طراحی ظاهری و ساختار صفحات جهت ارائه‌ی هویت بصری شرکت می‌باشد. لازم به ذکر است که کدهای عملکردی و منطق پشت وب‌سایت به صورت خصوصی در مخزن مجزا نگهداری می‌شوند.
+<div align="center">
 
-**لینک گیت هاب:** [https://github.com/movtigroup/movtigroup/](https://github.com/movtigroup/movtigroup/)
+# 🐳 Docker Mirror Proxy ایران
 
-## معرفی
+**پراکسی هوشمند میرور داکر برای اینترنت ملی و شرایط قطعی**
 
-این قالب به عنوان الگوی اصلی طراحی سایت شرکت MOVTIGROUP ارائه شده است. در اینجا تمرکز بر ایجاد یک تجربه کاربری مدرن، ساده و واکنش‌گرا قرار دارد. تمامی اجزا و ساختارهای بصری نمایانگر هویت برند، در‌باشند.
+![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?logo=fastapi)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## ویژگی‌های قالب
+</div>
 
-- **طراحی ریسپانسیو:** سازگار با تمامی دستگاه‌ها از جمله موبایل، تبلت و دسکتاپ.
-- **سفارشی‌سازی آسان:** امکان تغییر و تطبیق المان‌های طراحی مطابق با هویت بصری شرکت.
-- **سادگی و مستندسازی:** ساختار تمیز و مستند برای مرور و استفاده سریع.
-- **سهولت نگهداری:** به‌روزرسانی‌های منظم و ساختار سازمان‌یافته جهت حفظ انسجام طراحی.
+---
 
-## نکات مهم
+## 📋 معرفی
 
-- این مخزن صرفاً جهت نمایش قالب و اجزای ظاهری وب‌سایت می‌باشد.
-- کدهای مربوط به منطق عملکردی و مدیریت ترافیک، در مخزن خصوصی جداگانه نگهداری می‌شوند.
-- تغییرات، بهبودها و به‌روزرسانی‌های طراحی از طریق این مخزن منتشر خواهند شد.
+این مخزن شامل **کد سرویس پراکسی هوشمند میرور داکر** است که با **FastAPI** نوشته شده و در سرور **https://docker.ththt.ir** به صورت آماده در دسترس است.
+شما می‌توانید:
 
-## استفاده از قالب
+- **مستقیم** از میرور میزبانی شده https://docker.ththt.ir استفاده کنید (بدون نیاز به راه‌اندازی سرویس).
+- **کد را در سرور خودتان** با Docker Compose اجرا کنید و لیست میرورها را شخصی‌سازی کنید.
 
-برای بررسی اجزای طراحی و ساختار صفحات، می‌توانید فایل‌های موجود در این مخزن را مرور نمایید. در صورت داشتن نظرات یا پیشنهادات جهت بهبود قالب، از طریق بخش **Issues** یا ارتباط مستقیم با تیم ما مشارکت فرمایید.
+در هر دو حالت، سیستم به صورت خودکار سلامت میرورها را بررسی کرده و درخواست‌های Docker Daemon را هدایت می‌کند.
 
-## ارتباط با ما
+---
 
-- **ایمیل:** [info@movtigroup.ir](mailto:info@movtigroup.ir)
-- **وب‌سایت:** [movtigroup.ir](https://movtigroup.ir)
-- **گیت هاب:** [https://github.com/movtigroup/movtigroup/](https://github.com/movtigroup/movtigroup/)
+## 🚀 شروع سریع
+
+### گزینه اول: استفاده از میرور میزبانی شده (پیشنهادی)
+
+فایل تنظیمات Docker Daemon را ویرایش کنید:
+
+```bash
+sudo nano /etc/docker/daemon.json
+```
+
+محتوای زیر را قرار دهید:
+
+```json
+{
+  "registry-mirrors": ["https://docker.ththt.ir"],
+  "insecure-registries": ["https://docker.ththt.ir"]
+}
+```
+
+> اگر میرور شما از گواهی معتبر استفاده می‌کند (`https` معتبر)، خط `insecure-registries` اختیاری است. اما برای اطمینان در محیط‌های خاص، اضافه شده است.
+
+داکر را ریستارت کنید:
+
+```bash
+sudo systemctl restart docker
+```
+
+حالا دستور `docker pull` از این میرور استفاده می‌کند.
+
+---
+
+### گزینه دوم: اجرای سرویس روی سرور شخصی
+
+#### ۱. نصب Docker
+
+از اسکریپت ساده مخزن [movtigroup/docker](https://github.com/movtigroup/docker) استفاده کنید (طراحی شده برای ایران):
+
+```bash
+sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/movtigroup/docker/master/install.sh)"
+```
+
+#### ۲. کلون کردن مخزن و اجرا
+
+```bash
+git clone https://github.com/movtigroup/mirro-docker.git
+cd mirro-docker
+docker-compose up -d --build
+```
+
+#### ۳. تنظیم Docker برای استفاده از پراکسی محلی
+
+```json
+{
+  "registry-mirrors": ["https://docker.ththt.ir"],
+  "insecure-registries": ["https://docker.ththt.ir"]
+}
+```
+
+سپس `sudo systemctl restart docker`.
+
+---
+
+## ⚙️ نحوه کار
+
+- **Health Check:** در پس‌زمینه، سرویس به طور دوره‌ای (پیش‌فرض هر ۶۰ ثانیه) همه میرورهای لیست را با ارسال درخواست `GET /v2/` بررسی می‌کند.
+- **پراکسی معکوس:** درخواست کلاینت به یکی از میرورهای سالم (تصادفی) هدایت می‌شود.
+- **Stream:** پاسخ به صورت جریانی برگردانده می‌شود تا لایه‌های حجیم داکر بدون اشغال حافظه منتقل شوند.
+- **Failover:** اگر همه میرورها قطع باشند، خطای ۵۰۳ برگردانده می‌شود.
+
+---
+
+## 🔧 شخصی‌سازی لیست میرورها
+
+فایل `proxy_config.py` را ویرایش کنید:
+
+```python
+MIRRORS = [
+    "https://docker.iranserver.com",
+    "https://docker.abrha.net",
+    "https://docker.arvancloud.ir",
+    "https://mirror2.chabokan.net",
+    "https://docker.derak.cloud",
+    "https://docker.ththt.ir",   # میرور پیش‌فرض میزبانی شده
+]
+```
+
+پس از تغییر، سرویس را ری‌استارت کنید:
+
+```bash
+docker-compose restart
+```
+
+---
+
+## 🗂 ساختار فایل‌ها
+
+```
+.
+├── main.py              # اپلیکیشن FastAPI (پراکسی)
+├── proxy_config.py      # تنظیمات و لیست میرورها
+├── requirements.txt     # وابستگی‌های پایتون
+├── Dockerfile           # ساخت ایمج داکر
+├── docker-compose.yml   # تعریف سرویس
+├── .dockerignore        # فایل‌های نادیده گرفته شده در داکر
+└── README.md            # همین فایل
+```
+
+---
+
+## 🌐 مخزن رسمی
+
+برای مشاهده آخرین تغییرات و مشارکت:
+
+👉 **https://github.com/movtigroup/mirro-docker**
+
+---
+
+## 📄 مجوز
+
+این پروژه تحت **MIT License** منتشر شده است. استفاده، تغییر و توزیع آزاد است.
+
+---
+
+<div align="center">
+
+**✨ با ⭐️ دادن به این مخزن، از ما حمایت کنید!**
+
+</div>
+```
