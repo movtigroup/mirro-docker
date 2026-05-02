@@ -64,37 +64,34 @@ async def proxy(path: str, request: Request):
     if not path.startswith("v2/"):
         return Response(content="Docker Registry API must start with /v2/", status_code=404, media_type="text/plain")
 
-    # *** نکته کلیدی: پروتکل درخواست ورودی را حفظ کن ***
-    # اگر کاربر https://armigram... را زده، ما هم https://mirror... را صدا می‌زنیم
-    # اگر کاربر http://armigram... را زده، ما هم http://mirror... را صدا می‌زنیم
-    request_scheme = request.url.scheme
+    # *** اصلاح مهم: استفاده از پروتکل خودِ میرور ***
+    # دیگر از request.scheme استفاده نکنیم. مستقیماً از URL میرور استفاده می‌کنیم.
+    # چون در MIRRORS=https://... تعریف کرده‌ایم، خودِ mirror متغیر شامل https:// است.
     
     clean_mirror = mirror.rstrip('/')
     clean_path = path if path.startswith('/') else f"/{path}"
     
-    # ساخت URL هدف با حفظ پروتکل ورودی
-    target_url = f"{request_scheme}://{clean_mirror}{clean_path}"
+    # ترکیب URL میرور (که شامل پروتکل است) با پث
+    # مثال: https://mirror2.chabokan.net + /v2/nginx -> https://mirror2.chabokan.net/v2/nginx
+    target_url = f"{clean_mirror}/{clean_path.lstrip('/')}"
     
     if request.url.query:
         target_url += f"?{request.url.query}"
 
-    # کپی هدرها
     headers = dict(request.headers)
     
-    # *** تنظیم هدر Host ***
-    # مهم: هدر Host باید همان دامنه‌ای باشد که Docker می‌خواهد با آن صحبت کند.
-    # اگر میرور arvancloud.ir است، هدر Host باید arvancloud.ir باشد.
+    # تنظیم هدر Host به دامنه میرور
     parsed_mirror = urlparse(mirror)
     host_header = parsed_mirror.hostname
     if parsed_mirror.port:
         host_header += f":{parsed_mirror.port}"
     headers["host"] = host_header
     
-    # حذف هدرهای مزاحم که باعث 400 Bad Request می‌شوند
+    # حذف هدرهای مزاحم
     headers.pop("connection", None)
     headers.pop("transfer-encoding", None)
     headers.pop("accept-encoding", None)
-    # حذف هدرهای x-*
+    
     for header in list(headers.keys()):
         if header.lower().startswith("x-"):
             del headers[header]
@@ -108,11 +105,10 @@ async def proxy(path: str, request: Request):
             keepalive_expiry=0
         )
         
-        # verify=False برای عبور از خطاهای SSL میرورهای داخلی
         async with httpx.AsyncClient(
             timeout=httpx.Timeout(120.0, read=120.0),
             limits=limits,
-            verify=False
+            verify=False  # مهم: برای عبور از خطاهای SSL
         ) as client:
             body = await request.body()
             
