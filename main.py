@@ -11,15 +11,11 @@ from proxy_config import MIRRORS, HEALTH_CHECK_INTERVAL, HEALTH_CHECK_PATH
 
 app = FastAPI(title="Docker Mirror Proxy")
 
-# وضعیت سلامت میرورها
-healthy_mirrors: List[str] = []  # آدرس میرورهای سالم
-health_lock = asyncio.Lock()    # برای دسترسی هم‌زمان به لیست
+healthy_mirrors: List[str] = []
+health_lock = asyncio.Lock()
 
 
 async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
-    """
-    یک میرور را با فرستادن درخواست GET به HEALTH_CHECK_PATH بررسی می‌کند.
-    """
     try:
         url = f"{mirror.rstrip('/')}/{HEALTH_CHECK_PATH.lstrip('/')}"
         response = await client.get(url, timeout=5.0)
@@ -29,7 +25,6 @@ async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
 
 
 async def periodic_health_check():
-    """بررسی دوره‌ای سلامت همه میرورها و به‌روزرسانی لیست سالم‌ها"""
     async with httpx.AsyncClient(timeout=10.0) as client:
         while True:
             results = await asyncio.gather(
@@ -46,12 +41,10 @@ async def periodic_health_check():
 
 @app.on_event("startup")
 async def startup():
-    """شروع Health Check در background بعد از بالا آمدن اپ"""
     asyncio.create_task(periodic_health_check())
 
 
 async def get_healthy_mirror() -> Optional[str]:
-    """یک میرور سالم به صورت تصادفی برمی‌گرداند"""
     async with health_lock:
         if not healthy_mirrors:
             return None
@@ -60,11 +53,8 @@ async def get_healthy_mirror() -> Optional[str]:
 
 @app.api_route("/{path:path}", methods=["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy(path: str, request: Request):
-    """
-    تمام درخواست‌ها را دریافت کرده و به یک میرور سالم پراکسی می‌کند.
-    """
     mirror = await get_healthy_mirror()
-    
+
     if mirror is None:
         return Response(
             content="No healthy mirror available",
@@ -72,7 +62,7 @@ async def proxy(path: str, request: Request):
             media_type="text/plain",
         )
 
-    # فقط مسیرهایی که با v2/ شروع می‌شوند را پردازش می‌کنیم
+    # فقط مسیرهای v2/ را قبول می‌کنیم
     if not path.startswith("v2/"):
         return Response(
             content="Docker Registry API must start with /v2/",
@@ -80,37 +70,36 @@ async def proxy(path: str, request: Request):
             media_type="text/plain",
         )
 
-    # ساختن URL هدف
+    # ساخت URL مقصد
     clean_mirror = mirror.rstrip('/')
     clean_path = path if path.startswith('/') else f"/{path}"
     target_url = f"{clean_mirror}{clean_path}"
-    
+
     if request.url.query:
         target_url += f"?{request.url.query}"
 
-    # کپی هدرها و اصلاح آنها
+    # کپی هدرهای اصلی
     headers = dict(request.headers)
-    
-    # تنظیم هدر Host به آدرس میرور (mirror پاسخ درست می‌دهد)
+
+    # تنظیم هدر Host مطابق آدرس mirror
     parsed_mirror = urlparse(mirror)
     host_header = parsed_mirror.hostname
     if parsed_mirror.port:
         host_header += f":{parsed_mirror.port}"
     headers["host"] = host_header
-    
-    # حذف هدرهایی که ممکن است باعث ایجاد مشکل شوند
+
+    # حذف هدرهایی که ممکن است مشکل ایجاد کنند
     headers.pop("connection", None)
     headers.pop("transfer-encoding", None)
-    headers.pop("accept-encoding", None)   # httpx خودش این را مدیریت می‌کند
-    
-    # اضافه کردن User-Agent پیش‌فرض
-    headers.setdefault("user-agent", "Docker-Proxy/1.0")
-    
-    # برخی رجیستری‌ها نیاز به این هدر دارند
-    headers.setdefault("docker-distribution-api-version", "registry/2.0")
-    
-    # اگر Accept وجود ندارد، مقدار پیش‌فرض را بگذارید
-    headers.setdefault("accept", "*/*")
+    headers.pop("accept-encoding", None)
+
+    # *** حذف هدرهای اضافی که توسط پروکسی بالادست اضافه می‌شوند ***
+    for header in list(headers.keys()):
+        if header.lower().startswith("x-forwarded-"):
+            del headers[header]
+    # همچنین حذف هدر docker-distribution-api-version که خودمان اضافه کرده بودیم
+    # (mirror بدون آن کار می‌کند و شاید باعث 400 شود)
+    headers.pop("docker-distribution-api-version", None)
 
     # لاگ درخواست برای دیباگ
     print(f"\n[PROXY] {request.method} {target_url}")
@@ -119,17 +108,15 @@ async def proxy(path: str, request: Request):
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             body = await request.body()
-            
             req = client.build_request(
                 method=request.method,
                 url=target_url,
                 headers=headers,
                 content=body if body else None,
             )
-            
             resp = await client.send(req, stream=True)
-            
-            # لاگ پاسخ mirror
+
+            # اگر پاسخ خطا بود، آن را چاپ و برگردان
             if resp.status_code >= 400:
                 error_body = await resp.aread()
                 print(f"[ERROR] Mirror returned {resp.status_code}: {error_body.decode('utf-8', errors='ignore')}")
@@ -139,7 +126,7 @@ async def proxy(path: str, request: Request):
                     headers=dict(resp.headers),
                 )
 
-            # برگرداندن پاسخ موفق به صورت stream
+            # پاسخ موفق به صورت stream
             resp_headers = dict(resp.headers)
             resp_headers.pop("transfer-encoding", None)
             resp_headers.pop("connection", None)
