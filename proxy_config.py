@@ -5,6 +5,5 @@ MIRRORS = [
     "https://mirror2.chabokan.net",
     "https://docker.derak.cloud",
 ]
-
-HEALTH_CHECK_INTERVAL = 60  # ثانیه
-HEALTH_CHECK_PATH = "/v2/"  # می‌توانید از "/health" هم استفاده کنید
+HEALTH_CHECK_INTERVAL = 60
+HEALTH_CHECK_PATH = "/v2/"
