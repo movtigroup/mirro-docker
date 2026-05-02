@@ -5,13 +5,11 @@ from urllib.parse import urlparse
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
 import httpx
-# فرض می‌کنیم proxy_config.py در کنار این فایل قرار دارد
-# اگر در پوشه دیگری است، مسیر import را اصلاح کنید.
+
 from proxy_config import MIRRORS, HEALTH_CHECK_INTERVAL, HEALTH_CHECK_PATH
 
 app = FastAPI(title="Docker Mirror Proxy")
 
-# استفاده از لیست قابل تغییر برای healthy_mirrors
 healthy_mirrors_list: List[str] = []
 health_lock = asyncio.Lock()
 
