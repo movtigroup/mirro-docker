@@ -72,15 +72,8 @@ async def proxy(path: str, request: Request):
             media_type="text/plain",
         )
 
-    # *** اصلاح مهم: اطمینان از اینکه مسیر با /v2/ شروع می‌شود ***
-    # Docker Registry API همیشه با /v2/ شروع می‌شود.
-    # اگر درخواستی به / یا /favicon.ico آمد، آن را رد می‌کنیم یا به /v2/ هدایت می‌کنیم.
-    # اما برای سادگی، فرض می‌کنیم درخواست‌های Docker همیشه /v2/ دارند.
-    # اگر path با /v2/ شروع نشد، احتمالاً درخواست مرورگر است (مثل favicon).
-    
+    # فقط مسیرهایی که با v2/ شروع می‌شوند را پردازش می‌کنیم
     if not path.startswith("v2/"):
-        # اگر درخواست برای /v2/ نیست، می‌توانیم یک خطای مناسب برگردانیم
-        # یا آن را به /v2/ هدایت کنیم. اینجا برای سادگی خطای 404 می‌دهیم.
         return Response(
             content="Docker Registry API must start with /v2/",
             status_code=404,
@@ -89,29 +82,39 @@ async def proxy(path: str, request: Request):
 
     # ساختن URL هدف
     clean_mirror = mirror.rstrip('/')
-    # مطمئن شویم path با / شروع می‌شود
     clean_path = path if path.startswith('/') else f"/{path}"
     target_url = f"{clean_mirror}{clean_path}"
     
-    # اضافه کردن کوئری استرینگ اگر وجود دارد
     if request.url.query:
         target_url += f"?{request.url.query}"
 
-    # کپی هدرها
+    # کپی هدرها و اصلاح آنها
     headers = dict(request.headers)
     
-    # *** تنظیم هدر Host به آدرس میرور ***
+    # تنظیم هدر Host به آدرس میرور (mirror پاسخ درست می‌دهد)
     parsed_mirror = urlparse(mirror)
     host_header = parsed_mirror.hostname
     if parsed_mirror.port:
         host_header += f":{parsed_mirror.port}"
-        
     headers["host"] = host_header
     
-    # حذف هدرهایی که ممکن است باعث مشکل شوند
+    # حذف هدرهایی که ممکن است باعث ایجاد مشکل شوند
     headers.pop("connection", None)
     headers.pop("transfer-encoding", None)
-    # هدر accept را نگه می‌داریم چون Docker برای تشخیص نوع محتوا به آن نیاز دارد
+    headers.pop("accept-encoding", None)   # httpx خودش این را مدیریت می‌کند
+    
+    # اضافه کردن User-Agent پیش‌فرض
+    headers.setdefault("user-agent", "Docker-Proxy/1.0")
+    
+    # برخی رجیستری‌ها نیاز به این هدر دارند
+    headers.setdefault("docker-distribution-api-version", "registry/2.0")
+    
+    # اگر Accept وجود ندارد، مقدار پیش‌فرض را بگذارید
+    headers.setdefault("accept", "*/*")
+
+    # لاگ درخواست برای دیباگ
+    print(f"\n[PROXY] {request.method} {target_url}")
+    print(f"[HEADERS] {dict(headers)}")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -124,22 +127,20 @@ async def proxy(path: str, request: Request):
                 content=body if body else None,
             )
             
-            # ارسال درخواست
             resp = await client.send(req, stream=True)
-
-            # اگر پاسخ خطا بود (مثل 400)، آن را مستقیماً برگردانیم
+            
+            # لاگ پاسخ mirror
             if resp.status_code >= 400:
-                # خواندن بدنه خطا برای دیباگ
                 error_body = await resp.aread()
+                print(f"[ERROR] Mirror returned {resp.status_code}: {error_body.decode('utf-8', errors='ignore')}")
                 return Response(
-                    content=error_body.decode('utf-8', errors='ignore'),
+                    content=error_body,
                     status_code=resp.status_code,
                     headers=dict(resp.headers),
                 )
 
-            # بازگرداندن پاسخ به صورت stream
+            # برگرداندن پاسخ موفق به صورت stream
             resp_headers = dict(resp.headers)
-            # حذف هدرهایی که نباید به کلاینت نهایی برسند
             resp_headers.pop("transfer-encoding", None)
             resp_headers.pop("connection", None)
 
@@ -149,7 +150,7 @@ async def proxy(path: str, request: Request):
                 headers=resp_headers,
             )
     except Exception as e:
-        print(f"Proxy Error for {path}: {e}")
+        print(f"[PROXY ERROR] {path}: {e}")
         return Response(
             content=f"Proxy error: {str(e)}",
             status_code=502,
