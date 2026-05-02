@@ -1,3 +1,4 @@
+# main.py - Version with all fixes
 import random
 import asyncio
 from typing import List, Optional
@@ -14,6 +15,13 @@ app = FastAPI(title="Docker Mirror Proxy")
 healthy_mirrors: List[str] = []
 health_lock = asyncio.Lock()
 
+# تمام هدرهایی که توسط پروکسی بالادست (Nginx, Cloudflare, ...) اضافه می‌شوند
+UPSTREAM_HEADERS = {
+    "x-real-ip", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-port",
+    "x-forwarded-host", "x-forwarded-server", "x-forwarded-ssl", "x-forwarded-scheme",
+    "x-nginx-proxy", "x-request-id", "x-trace-id", "cf-connecting-ip", "cf-ray",
+    "cf-visitor", "cdn-loop", "true-client-ip", "x-amzn-trace-id"
+}
 
 async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
     try:
@@ -22,7 +30,6 @@ async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
         return response.is_success
     except Exception:
         return False
-
 
 async def periodic_health_check():
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -38,18 +45,15 @@ async def periodic_health_check():
             print(f"Healthy mirrors: {healthy_mirrors}")
             await asyncio.sleep(HEALTH_CHECK_INTERVAL)
 
-
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(periodic_health_check())
-
 
 async def get_healthy_mirror() -> Optional[str]:
     async with health_lock:
         if not healthy_mirrors:
             return None
         return random.choice(healthy_mirrors)
-
 
 @app.api_route("/{path:path}", methods=["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy(path: str, request: Request):
@@ -62,7 +66,6 @@ async def proxy(path: str, request: Request):
             media_type="text/plain",
         )
 
-    # فقط مسیرهای v2/ را قبول می‌کنیم
     if not path.startswith("v2/"):
         return Response(
             content="Docker Registry API must start with /v2/",
@@ -70,7 +73,6 @@ async def proxy(path: str, request: Request):
             media_type="text/plain",
         )
 
-    # ساخت URL مقصد
     clean_mirror = mirror.rstrip('/')
     clean_path = path if path.startswith('/') else f"/{path}"
     target_url = f"{clean_mirror}{clean_path}"
@@ -78,32 +80,24 @@ async def proxy(path: str, request: Request):
     if request.url.query:
         target_url += f"?{request.url.query}"
 
-    # کپی هدرهای اصلی
     headers = dict(request.headers)
 
-    # تنظیم هدر Host مطابق آدرس mirror
+    # تنظیم Host به آدرس mirror
     parsed_mirror = urlparse(mirror)
     host_header = parsed_mirror.hostname
     if parsed_mirror.port:
         host_header += f":{parsed_mirror.port}"
     headers["host"] = host_header
 
-    # حذف هدرهایی که ممکن است مشکل ایجاد کنند
+    # حذف هدرهای غیرضروری
     headers.pop("connection", None)
     headers.pop("transfer-encoding", None)
     headers.pop("accept-encoding", None)
 
-    # *** حذف هدرهای اضافی که توسط پروکسی بالادست اضافه می‌شوند ***
+    # حذف تمام هدرهای اضافی که توسط proxy بالادست افزوده شده‌اند (x-*)
     for header in list(headers.keys()):
-        if header.lower().startswith("x-forwarded-"):
+        if header.lower().startswith("x-"):
             del headers[header]
-    # همچنین حذف هدر docker-distribution-api-version که خودمان اضافه کرده بودیم
-    # (mirror بدون آن کار می‌کند و شاید باعث 400 شود)
-    headers.pop("docker-distribution-api-version", None)
-
-    # لاگ درخواست برای دیباگ
-    print(f"\n[PROXY] {request.method} {target_url}")
-    print(f"[HEADERS] {dict(headers)}")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -116,8 +110,8 @@ async def proxy(path: str, request: Request):
             )
             resp = await client.send(req, stream=True)
 
-            # اگر پاسخ خطا بود، آن را چاپ و برگردان
             if resp.status_code >= 400:
+                # در صورت خطا، بدنه را بخوان و برگردان
                 error_body = await resp.aread()
                 print(f"[ERROR] Mirror returned {resp.status_code}: {error_body.decode('utf-8', errors='ignore')}")
                 return Response(
@@ -126,16 +120,34 @@ async def proxy(path: str, request: Request):
                     headers=dict(resp.headers),
                 )
 
-            # پاسخ موفق به صورت stream
+            # پاسخ موفق – stream با مدیریت خطا
             resp_headers = dict(resp.headers)
             resp_headers.pop("transfer-encoding", None)
             resp_headers.pop("connection", None)
 
+            async def stream_generator():
+                try:
+                    async for chunk in resp.aiter_bytes():
+                        yield chunk
+                except httpx.ReadError as e:
+                    # خطای خواندن معمولاً در حین دانلود لایه‌های بزرگ رخ می‌دهد
+                    # client docker خودش درخواست را دوباره می‌فرستد (Range header)
+                    print(f"[STREAM_READ_ERROR] {e}")
+                except Exception as e:
+                    print(f"[STREAM_UNEXPECTED_ERROR] {e}")
+
             return StreamingResponse(
-                content=resp.aiter_bytes(),
+                content=stream_generator(),
                 status_code=resp.status_code,
                 headers=resp_headers,
             )
+    except httpx.ReadTimeout as e:
+        print(f"[PROXY TIMEOUT] {path}: {e}")
+        return Response(
+            content="Upstream mirror timed out",
+            status_code=504,
+            media_type="text/plain",
+        )
     except Exception as e:
         print(f"[PROXY ERROR] {path}: {e}")
         return Response(
