@@ -142,11 +142,21 @@ async def shutdown():
 
 async def get_healthy_mirror() -> Optional[str]:
     """
-    یک mirror سالم را به صورت تصادفی انتخاب و برمی گرداند.
+    یک mirror سالم را انتخاب و برمی گرداند.
+    اولویت با میرورهای ابتدای لیست (میرورهای ایرانی) است.
     """
     async with health_lock:
         if not healthy_mirrors_list:
             return None
+
+        # میرورهای ایرانی (5 مورد اول در MIRRORS)
+        iranian_mirrors = MIRRORS[:5]
+        healthy_iranian = [m for m in iranian_mirrors if m in healthy_mirrors_list]
+
+        if healthy_iranian:
+            return random.choice(healthy_iranian)
+
+        # اگر میرور ایرانی سالمی نبود، از بقیه موارد به صورت تصادفی انتخاب کن
         return random.choice(healthy_mirrors_list)
 
 
