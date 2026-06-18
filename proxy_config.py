@@ -11,7 +11,7 @@ MIRRORS = [
     "https://docker.mirrors.ustc.edu.cn",
     "https://hub-mirror.c.163.com",
     "https://mirror.baidubce.com",
-    "https://ccr.ccs.tencentyun.com",
+    "https://mirror.ccs.tencentyun.com",
     "https://docker.nju.edu.cn",
     "https://docker.1panel.live",
     "https://registry.docker-cn.com",
