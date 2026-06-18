@@ -4,7 +4,7 @@
 
 **专为受限环境和全球可用性设计的智能 Docker 镜像代理**
 
-[![发布 Docker 镜像](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml)
+[![自动打标签和发布](https://github.com/movtigroup/mirro-docker/actions/workflows/release.yml/badge.svg)](https://github.com/movtigroup/mirro-docker/actions/workflows/release.yml)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?logo=fastapi)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
