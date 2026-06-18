@@ -1,4 +1,3 @@
-
 <div align="center">
 
 # 🐳 Docker Mirror Proxy ایران
@@ -9,6 +8,9 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?logo=fastapi)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+![CI/CD](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml/badge.svg)
+
+[English](README.en.md) | [中文](README.zh.md)
 
 </div>
 
@@ -16,13 +18,13 @@
 
 ## 📋 معرفی
 
-این مخزن شامل **کد سرویس پراکسی هوشمند میرور داکر** است که با **FastAPI** نوشته شده و در سرور **https://docker.ththt.ir** به صورت آماده در دسترس است.
-شما می‌توانید:
+این مخزن شامل **کد سرویس پراکسی هوشمند میرور داکر** است که با **FastAPI** نوشته شده است. این سرویس به صورت خودکار بین لایه‌های مختلف میرور (ایران، چین، اروپا و آمریکا) سوئیچ می‌کند تا بهترین سرعت و پایداری را فراهم کند.
 
-- **مستقیم** از میرور میزبانی شده https://docker.ththt.ir استفاده کنید (بدون نیاز به راه‌اندازی سرویس).
-- **کد را در سرور خودتان** با Docker Compose اجرا کنید و لیست میرورها را شخصی‌سازی کنید.
-
-در هر دو حالت، سیستم به صورت خودکار سلامت میرورها را بررسی کرده و درخواست‌های Docker Daemon را هدایت می‌کند.
+### قابلیت‌های کلیدی:
+- **انتخاب لایه‌بندی شده (Tiered):** اولویت‌بندی هوشمند بین Tier 1، میرورهای داخلی و میرورهای جهانی (Tier 2).
+- **پشتیبانی از GPG و پکیج‌ها:** قابلیت پراکسی کردن درخواست‌های کلید GPG و مخازن نصب داکر (apt/yum) به میرورهای پرسرعت (Tsinghua, Aliyun, Hetzner, OVH).
+- **بررسی سلامت (Health Check):** تست دوره‌ای میرورها برای اطمینان از در دسترس بودن.
+- **پاسخ جریانی (Streaming):** انتقال بهینه لایه‌های سنگین داکر بدون اشغال حافظه سرور.
 
 ---
 
@@ -32,20 +34,12 @@
 
 فایل تنظیمات Docker Daemon را ویرایش کنید:
 
-```bash
-sudo nano /etc/docker/daemon.json
-```
-
-محتوای زیر را قرار دهید:
-
 ```json
 {
   "registry-mirrors": ["https://docker.ththt.ir"],
   "insecure-registries": ["https://docker.ththt.ir"]
 }
 ```
-
-> اگر میرور شما از گواهی معتبر استفاده می‌کند (`https` معتبر)، خط `insecure-registries` اختیاری است. اما برای اطمینان در محیط‌های خاص، اضافه شده است.
 
 داکر را ریستارت کنید:
 
@@ -53,21 +47,11 @@ sudo nano /etc/docker/daemon.json
 sudo systemctl restart docker
 ```
 
-حالا دستور `docker pull` از این میرور استفاده می‌کند.
-
 ---
 
 ### گزینه دوم: اجرای سرویس روی سرور شخصی
 
-#### ۱. نصب Docker
-
-از اسکریپت ساده مخزن [movtigroup/docker](https://github.com/movtigroup/docker) استفاده کنید (طراحی شده برای ایران):
-
-```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/movtigroup/docker/master/install.sh)"
-```
-
-#### ۲. کلون کردن مخزن و اجرا
+#### ۱. کلون کردن مخزن و اجرا
 
 ```bash
 git clone https://github.com/movtigroup/mirro-docker.git
@@ -75,71 +59,24 @@ cd mirro-docker
 docker-compose up -d --build
 ```
 
-#### ۳. تنظیم Docker برای استفاده از پراکسی محلی
+#### ۲. تنظیمات شخصی
 
-```json
-{
-  "registry-mirrors": ["https://docker.ththt.ir"],
-  "insecure-registries": ["https://docker.ththt.ir"]
-}
+فایل `proxy_config.py` را برای لایه‌بندی میرورها ویرایش کنید:
+
+```python
+TIER1_MIRRORS = [...]
+IRANIAN_MIRRORS = [...]
+TIER2_MIRRORS = [...]
+PACKAGE_MIRRORS = [...]
 ```
-
-سپس `sudo systemctl restart docker`.
 
 ---
 
 ## ⚙️ نحوه کار
 
-- **Health Check:** در پس‌زمینه، سرویس به طور دوره‌ای (پیش‌فرض هر ۶۰ ثانیه) همه میرورهای لیست را با ارسال درخواست `GET /v2/` بررسی می‌کند.
-- **پراکسی معکوس:** درخواست کلاینت به یکی از میرورهای سالم (تصادفی) هدایت می‌شود.
-- **Stream:** پاسخ به صورت جریانی برگردانده می‌شود تا لایه‌های حجیم داکر بدون اشغال حافظه منتقل شوند.
-- **Failover:** اگر همه میرورها قطع باشند، خطای ۵۰۳ برگردانده می‌شود.
-
----
-
-## 🔧 شخصی‌سازی لیست میرورها
-
-فایل `proxy_config.py` را ویرایش کنید:
-
-```python
-MIRRORS = [
-    "https://docker.iranserver.com",
-    "https://docker.abrha.net",
-    "https://docker.arvancloud.ir",
-    "https://mirror2.chabokan.net",
-    "https://docker.derak.cloud",
-    "https://docker.ththt.ir",   # میرور پیش‌فرض میزبانی شده
-]
-```
-
-پس از تغییر، سرویس را ری‌استارت کنید:
-
-```bash
-docker-compose restart
-```
-
----
-
-## 🗂 ساختار فایل‌ها
-
-```
-.
-├── main.py              # اپلیکیشن FastAPI (پراکسی)
-├── proxy_config.py      # تنظیمات و لیست میرورها
-├── requirements.txt     # وابستگی‌های پایتون
-├── Dockerfile           # ساخت ایمج داکر
-├── docker-compose.yml   # تعریف سرویس
-├── .dockerignore        # فایل‌های نادیده گرفته شده در داکر
-└── README.md            # همین فایل
-```
-
----
-
-## 🌐 مخزن رسمی
-
-برای مشاهده آخرین تغییرات و مشارکت:
-
-👉 **https://github.com/movtigroup/mirro-docker**
+- **Health Check:** در پس‌زمینه، سرویس به طور دوره‌ای همه میرورها را بررسی می‌کند.
+- **منطق اولویت‌بندی:** ابتدا Tier 1، سپس میرورهای ایرانی و در نهایت Tier 2 (چین و جهانی) بررسی می‌شوند.
+- **پراکسی پکیج:** درخواست‌های مربوط به نصب داکر (مانند `linux/ubuntu` یا `gpg`) به صورت خودکار به میرورهای مخصوص پکیج هدایت می‌شوند.
 
 ---
 

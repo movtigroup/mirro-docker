@@ -1,9 +1,18 @@
-MIRRORS = [
+# Tier 1 Mirrors (High Priority)
+TIER1_MIRRORS = [
+    "https://repo.abrha.net/docker",
     "https://docker.iranserver.com",
-    "https://docker.abrha.net",
+]
+
+# Iranian Mirrors
+IRANIAN_MIRRORS = [
     "https://docker.arvancloud.ir",
     "https://mirror2.chabokan.net",
     "https://docker.derak.cloud",
+]
+
+# Tier 2 / International Registry Mirrors
+TIER2_MIRRORS = [
     "https://docker.1ms.run",
     "https://dockerproxy.net",
     "https://docker.m.daocloud.io",
@@ -34,5 +43,22 @@ MIRRORS = [
     "https://asia.gcr.io",
     "https://eu.gcr.io",
 ]
+
+# Package & GPG Mirrors (for apt/yum and gpg keys)
+# These are used when the request path matches package or gpg patterns
+PACKAGE_MIRRORS = [
+    "https://mirrors.tuna.tsinghua.edu.cn/docker-ce",
+    "https://mirrors.ustc.edu.cn/docker-ce",
+    "https://mirrors.aliyun.com/docker-ce",
+    "https://mirrors.huaweicloud.com/docker-ce",
+    "https://mirrors.cloud.tencent.com/docker-ce",
+    "https://download.docker.com",
+    "https://mirror.hetzner.com/docker-ce",
+    "https://vps-mirror.ovh.net/docker-ce",
+]
+
+# Combined list for health checks (Registry API)
+MIRRORS = TIER1_MIRRORS + IRANIAN_MIRRORS + TIER2_MIRRORS
+
 HEALTH_CHECK_INTERVAL = 60
 HEALTH_CHECK_PATH = "/v2/"
