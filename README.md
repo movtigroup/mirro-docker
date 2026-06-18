@@ -1,14 +1,16 @@
-
 <div align="center">
 
 # 🐳 Docker Mirror Proxy ایران
 
 **پراکسی هوشمند میرور داکر برای اینترنت ملی و شرایط قطعی**
 
+[![Publish Docker image](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?logo=fastapi)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+[فارسی](README.md) | [English](README.en.md) | [简体中文](README.zh.md)
 
 </div>
 
@@ -16,10 +18,11 @@
 
 ## 📋 معرفی
 
-این مخزن شامل **کد سرویس پراکسی هوشمند میرور داکر** است که با **FastAPI** نوشته شده و در سرور **https://docker.ththt.ir** به صورت آماده در دسترس است.
+این مخزن شامل **کد سرویس پراکسی هوشمند میرور داکر** است که با **FastAPI** نوشته شده و به صورت هوشمند درخواست‌ها را به سمت میرورهای سالم هدایت می‌کند.
+
 شما می‌توانید:
 
-- **مستقیم** از میرور میزبانی شده https://docker.ththt.ir استفاده کنید (بدون نیاز به راه‌اندازی سرویس).
+- **مستقیم** از یک میرور میزبانی شده استفاده کنید.
 - **کد را در سرور خودتان** با Docker Compose اجرا کنید و لیست میرورها را شخصی‌سازی کنید.
 
 در هر دو حالت، سیستم به صورت خودکار سلامت میرورها را بررسی کرده و درخواست‌های Docker Daemon را هدایت می‌کند.
@@ -30,13 +33,7 @@
 
 ### گزینه اول: استفاده از میرور میزبانی شده (پیشنهادی)
 
-فایل تنظیمات Docker Daemon را ویرایش کنید:
-
-```bash
-sudo nano /etc/docker/daemon.json
-```
-
-محتوای زیر را قرار دهید:
+فایل تنظیمات Docker Daemon را ویرایش کنید (مثلاً `/etc/docker/daemon.json`):
 
 ```json
 {
@@ -45,7 +42,7 @@ sudo nano /etc/docker/daemon.json
 }
 ```
 
-> اگر میرور شما از گواهی معتبر استفاده می‌کند (`https` معتبر)، خط `insecure-registries` اختیاری است. اما برای اطمینان در محیط‌های خاص، اضافه شده است.
+> **نکته:** آدرس `https://docker.ththt.ir` یک مثال است. از آدرس دامنه خودتان استفاده کنید.
 
 داکر را ریستارت کنید:
 
@@ -53,19 +50,13 @@ sudo nano /etc/docker/daemon.json
 sudo systemctl restart docker
 ```
 
-حالا دستور `docker pull` از این میرور استفاده می‌کند.
-
 ---
 
 ### گزینه دوم: اجرای سرویس روی سرور شخصی
 
-#### ۱. نصب Docker
+#### ۱. پیش‌نیازها
 
-از اسکریپت ساده مخزن [movtigroup/docker](https://github.com/movtigroup/docker) استفاده کنید (طراحی شده برای ایران):
-
-```bash
-sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/movtigroup/docker/master/install.sh)"
-```
+مطمئن شوید Docker و Docker Compose روی سرور شما نصب است.
 
 #### ۲. کلون کردن مخزن و اجرا
 
@@ -74,17 +65,6 @@ git clone https://github.com/movtigroup/mirro-docker.git
 cd mirro-docker
 docker-compose up -d --build
 ```
-
-#### ۳. تنظیم Docker برای استفاده از پراکسی محلی
-
-```json
-{
-  "registry-mirrors": ["https://docker.ththt.ir"],
-  "insecure-registries": ["https://docker.ththt.ir"]
-}
-```
-
-سپس `sudo systemctl restart docker`.
 
 ---
 
@@ -105,10 +85,9 @@ docker-compose up -d --build
 MIRRORS = [
     "https://docker.iranserver.com",
     "https://docker.abrha.net",
-    "https://docker.arvancloud.ir",
-    "https://mirror2.chabokan.net",
-    "https://docker.derak.cloud",
-    "https://docker.ththt.ir",   # میرور پیش‌فرض میزبانی شده
+    "https://mirror.hetzner.com",
+    "https://docker.ovh.net",
+    # ... موارد بیشتر اضافه کنید
 ]
 ```
 
@@ -124,22 +103,13 @@ docker-compose restart
 
 ```
 .
-├── main.py              # اپلیکیشن FastAPI (پراکسی)
+├── main.py              # اپلیکیشن FastAPI (منطق پراکسی)
 ├── proxy_config.py      # تنظیمات و لیست میرورها
 ├── requirements.txt     # وابستگی‌های پایتون
 ├── Dockerfile           # ساخت ایمج داکر
 ├── docker-compose.yml   # تعریف سرویس
-├── .dockerignore        # فایل‌های نادیده گرفته شده در داکر
 └── README.md            # همین فایل
 ```
-
----
-
-## 🌐 مخزن رسمی
-
-برای مشاهده آخرین تغییرات و مشارکت:
-
-👉 **https://github.com/movtigroup/mirro-docker**
 
 ---
 
