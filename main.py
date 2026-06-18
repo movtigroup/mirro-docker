@@ -110,7 +110,7 @@ def parse_range_header(range_header: str) -> Optional[Tuple[int, Optional[int]]]
 @app.api_route("/{path:path}", methods=["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"])
 async def proxy(path: str, request: Request):
     # Detect GPG or Package requests
-    is_package = any(x in path.lower() for x in ["gpg", "linux/ubuntu", "linux/debian", "linux/centos", "linux/static", "linux/fedora"])
+    is_package = any(x in path.lower() for x in ["gpg", "linux/ubuntu", "linux/debian", "linux/centos", "linux/static", "linux/fedora", "linux/alpine", "linux/raspbian", "win/static", "docker-ce"])
 
     mirror = await get_healthy_mirror(is_package=is_package)
     if not mirror:

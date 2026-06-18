@@ -29,7 +29,8 @@ This repository contains a **Smart Docker Mirror Proxy** built with **FastAPI**.
 
 ### Option 1: Using the Public Mirror (Recommended)
 
-Edit your Docker Daemon configuration (e.g., /etc/docker/daemon.json):
+#### 1. Setup Docker Registry
+Edit your Docker Daemon configuration (e.g., `/etc/docker/daemon.json`):
 
 ```json
 {
@@ -38,10 +39,17 @@ Edit your Docker Daemon configuration (e.g., /etc/docker/daemon.json):
 }
 ```
 
-Restart Docker:
+Restart Docker: `sudo systemctl restart docker`.
+
+#### 2. Usage for GPG and Repositories (Docker Install)
+You can also use this proxy to fetch GPG keys and install Docker:
 
 ```bash
-sudo systemctl restart docker
+# Fetch GPG key
+curl -fsSL https://docker.ththt.ir/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Add apt repository
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://docker.ththt.ir/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
 ---
@@ -59,24 +67,13 @@ cd mirro-docker
 docker-compose up -d --build
 ```
 
-#### 3. Configuration
-
-Edit `proxy_config.py` to customize your tiers:
-
-```python
-TIER1_MIRRORS = [...]
-IRANIAN_MIRRORS = [...]
-TIER2_MIRRORS = [...]
-PACKAGE_MIRRORS = [...]
-```
-
 ---
 
 ## ⚙️ How it Works
 
-- **Health Check:** Runs every 60 seconds (default) via `GET /v2/`.
-- **Failover Logic:** Priority order is Tier 1 -> Iranian -> Tier 2. If all mirrors in a tier fail, it falls back to the next one.
-- **Package Proxying:** Automatically detects installation requests (e.g., `linux/ubuntu`, `gpg`) and routes them to dedicated high-speed package mirrors.
+- **Health Check:** Runs every 60 seconds (default).
+- **Failover Logic:** Priority order is Tier 1 -> Iranian -> Tier 2.
+- **Package Proxying:** Automatically detects installation requests and routes them to dedicated high-speed package mirrors.
 
 ---
 

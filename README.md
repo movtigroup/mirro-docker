@@ -32,6 +32,7 @@
 
 ### گزینه اول: استفاده از میرور میزبانی شده (پیشنهادی)
 
+#### ۱. تنظیم Docker Registry
 فایل تنظیمات Docker Daemon را ویرایش کنید:
 
 ```json
@@ -41,10 +42,17 @@
 }
 ```
 
-داکر را ریستارت کنید:
+داکر را ریستارت کنید: `sudo systemctl restart docker`.
+
+#### ۲. استفاده برای GPG و مخازن (نصب داکر)
+می‌توانید از این پراکسی برای دریافت کلید GPG و نصب داکر نیز استفاده کنید:
 
 ```bash
-sudo systemctl restart docker
+# دریافت کلید GPG
+curl -fsSL https://docker.ththt.ir/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# اضافه کردن مخزن apt
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.gpg] https://docker.ththt.ir/linux/ubuntu noble stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
 ---
@@ -61,14 +69,7 @@ docker-compose up -d --build
 
 #### ۲. تنظیمات شخصی
 
-فایل `proxy_config.py` را برای لایه‌بندی میرورها ویرایش کنید:
-
-```python
-TIER1_MIRRORS = [...]
-IRANIAN_MIRRORS = [...]
-TIER2_MIRRORS = [...]
-PACKAGE_MIRRORS = [...]
-```
+فایل `proxy_config.py` را برای لایه‌بندی میرورها ویرایش کنید.
 
 ---
 
@@ -82,7 +83,7 @@ PACKAGE_MIRRORS = [...]
 
 ## 📄 مجوز
 
-این پروژه تحت **MIT License** منتشر شده است. استفاده، تغییر و توزیع آزاد است.
+این پروژه تحت **MIT License** منتشر شده است.
 
 ---
 

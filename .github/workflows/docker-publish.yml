@@ -43,18 +43,26 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
 
-      - name: Build and push Docker image
-        id: build-and-push
+      - name: Build and load for testing
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          load: true
+          tags: local-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Simple test to verify the image
       - name: Test Docker image
         run: |
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }} python3 -c "import main; print('Success')"
+          docker run --rm local-test python3 -c "import main; print('Success')"
+
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          # No need to set cache-to here as it was already populated in the previous step

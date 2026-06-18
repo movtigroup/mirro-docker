@@ -29,7 +29,8 @@
 
 ### 选项 1：使用公开镜像（推荐）
 
-编辑 Docker 守护程序配置（例如：/etc/docker/daemon.json）：
+#### 1. 配置 Docker Registry
+编辑 Docker 守护程序配置（例如：`/etc/docker/daemon.json`）：
 
 ```json
 {
@@ -38,10 +39,17 @@
 }
 ```
 
-重启 Docker：
+重启 Docker：`sudo systemctl restart docker`。
+
+#### 2. 用于 GPG 和 软件源 (安装 Docker)
+您也可以使用此代理获取 GPG 密钥并安装 Docker：
 
 ```bash
-sudo systemctl restart docker
+# 获取 GPG 密钥
+curl -fsSL https://docker.ththt.ir/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# 添加 apt 软件源
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://docker.ththt.ir/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 ```
 
 ---
@@ -59,24 +67,13 @@ cd mirro-docker
 docker-compose up -d --build
 ```
 
-#### 3. 自定义配置
-
-编辑 `proxy_config.py` 来自定义您的镜像分层：
-
-```python
-TIER1_MIRRORS = [...]
-IRANIAN_MIRRORS = [...]
-TIER2_MIRRORS = [...]
-PACKAGE_MIRRORS = [...]
-```
-
 ---
 
 ## ⚙️ 工作原理
 
-- **健康检查：** 默认每 60 秒通过 `GET /v2/` 进行一次检查。
-- **故障转移逻辑：** 优先级顺序为 Tier 1 -> 伊朗镜像 -> Tier 2。如果当前层级的所有镜像都失效，将自动回退到下一层。
-- **软件包代理：** 自动检测安装请求（如 `linux/ubuntu`, `gpg`）并将其路由至专用的高速软件包镜像。
+- **健康检查：** 默认每 60 秒检查一次。
+- **故障转移逻辑：** 优先级顺序为 Tier 1 -> 伊朗镜像 -> Tier 2。
+- **软件包代理：** 自动检测安装请求并将其路由至专用的高速软件包镜像。
 
 ---
 
