@@ -4,7 +4,7 @@
 
 **پراکسی هوشمند میرور داکر برای اینترنت ملی و شرایط قطعی**
 
-[![Publish Docker image](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/movtigroup/mirro-docker/actions/workflows/docker-publish.yml)
+[![Auto Tag & Release](https://github.com/movtigroup/mirro-docker/actions/workflows/release.yml/badge.svg)](https://github.com/movtigroup/mirro-docker/actions/workflows/release.yml)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-green?logo=fastapi)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
