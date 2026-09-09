@@ -24,9 +24,13 @@ FOREIGN_MIRRORS = [
     "https://registry.docker-cn.com",
     "https://hub.rat.dev",
     "https://docker.xuanyuan.me",
+    "https://dockerhub.icu",
+    "https://hub.uuuadc.top",
+    "https://docker.awsl9527.cn",
 
     # --- اروپا، آمریکا و سایر مناطق ---
     "https://dockerproxy.net",
+    "https://docker.imgdb.de",
     "https://docker.1ms.run",
     "https://registry.mirror.hetzner.com",
     "https://docker.ovh.net",
