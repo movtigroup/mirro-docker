@@ -1,12 +1,19 @@
-MIRRORS = [
-    # --- Iranian Mirrors (Priority) ---
+import ipaddress
+from urllib.parse import urlparse
+
+# --- میرورهای ایرانی (اولویت اول) ---
+IRANIAN_MIRRORS = [
     "https://docker.iranserver.com",
     "https://docker.abrha.net",
     "https://docker.arvancloud.ir",
     "https://mirror2.chabokan.net",
     "https://docker.derak.cloud",
+    "https://docker.devneeds.ir",
+    "https://docker.hyperclouds.ir",
+]
 
-    # --- Chinese Mirrors ---
+# --- میرورهای چینی ---
+FOREIGN_MIRRORS = [
     "https://docker.m.daocloud.io",
     "https://docker.mirrors.ustc.edu.cn",
     "https://hub-mirror.c.163.com",
@@ -15,8 +22,10 @@ MIRRORS = [
     "https://docker.nju.edu.cn",
     "https://docker.1panel.live",
     "https://registry.docker-cn.com",
+    "https://hub.rat.dev",
+    "https://docker.xuanyuan.me",
 
-    # --- Europe & US & Others ---
+    # --- اروپا، آمریکا و سایر مناطق ---
     "https://dockerproxy.net",
     "https://docker.1ms.run",
     "https://registry.mirror.hetzner.com",
@@ -32,6 +41,30 @@ MIRRORS = [
     "https://gcr.io",
     "https://ghcr.io",
 ]
+
+
+def _is_valid_mirror(url: str) -> bool:
+    """
+    اعتبارسنجی میرور: فقط http/https با هاست عمومی مجاز است.
+    localhost، loopback و آدرس‌های IP خصوصی/رزرو رد می‌شوند.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        return False
+    host = parsed.hostname.lower()
+    if host == "localhost" or host.endswith((".localhost", ".local", ".internal")):
+        return False
+    try:
+        addr = ipaddress.ip_address(host)
+        if not addr.is_global:
+            return False
+    except ValueError:
+        # hostname یک نام دامنه است، نه IP literal
+        pass
+    return True
+
+
+MIRRORS = [u.rstrip("/") for u in IRANIAN_MIRRORS + FOREIGN_MIRRORS if _is_valid_mirror(u)]
 
 HEALTH_CHECK_INTERVAL = 60
 HEALTH_CHECK_PATH = "/v2/"

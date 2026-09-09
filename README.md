@@ -82,9 +82,14 @@ docker-compose up -d --build
 فایل `proxy_config.py` را ویرایش کنید:
 
 ```python
-MIRRORS = [
+IRANIAN_MIRRORS = [
     "https://docker.iranserver.com",
     "https://docker.abrha.net",
+    "https://docker.devneeds.ir",
+    "https://docker.hyperclouds.ir",
+]
+
+FOREIGN_MIRRORS = [
     "https://mirror.hetzner.com",
     "https://docker.ovh.net",
     # ... موارد بیشتر اضافه کنید

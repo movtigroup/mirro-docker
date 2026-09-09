@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
 import httpx
 
-from proxy_config import MIRRORS, HEALTH_CHECK_INTERVAL, HEALTH_CHECK_PATH
+from proxy_config import MIRRORS, IRANIAN_MIRRORS, HEALTH_CHECK_INTERVAL, HEALTH_CHECK_PATH
 
 app = FastAPI(title="Docker Mirror Proxy")
 
@@ -34,6 +34,7 @@ async def get_client():
             client_pool[mirror_url] = httpx.AsyncClient(
                 timeout=httpx.Timeout(120.0, read=120.0),
                 limits=limits,
+                follow_redirects=True, # برخی میرورها http را به https یا مسیر دیگری هدایت می‌کنند
                 verify=False # برای سازگاری با بعضی mirrors که گواهی SSL معتبر ندارند
             )
         except Exception as e:
@@ -59,7 +60,8 @@ async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
     try:
         url = f"{mirror.rstrip('/')}/{HEALTH_CHECK_PATH.lstrip('/')}"
         response = await client.get(url, timeout=5.0)
-        return response.is_success
+        # کد 401 چالش احراز هویت استاندارد Docker Registry است؛ یعنی میرور زنده است.
+        return response.is_success or response.status_code == 401
     except Exception as e:
         # print(f"[HEALTH_CHECK_FAIL] {mirror}: {e}") # برای دیباگ کردن خطاهای سلامت
         return False
@@ -86,8 +88,8 @@ async def periodic_health_check():
         print("[WARN] No mirrors configured in proxy_config.py.")
         return
 
-    # استفاده از کلاینت مجزا برای چک کردن سلامت
-    async with httpx.AsyncClient(timeout=10.0, verify=False) as health_client:
+    # استفاده از کلاینت مجزا برای چک کردن سلامت (follow_redirects برای میرورهایی که http را به https هدایت می‌کنند)
+    async with httpx.AsyncClient(timeout=10.0, verify=False, follow_redirects=True) as health_client:
         while True:
             print(f"Checking health of {len(MIRRORS)} mirrors...")
             tasks = [check_mirror_health(mirror, health_client) for mirror in MIRRORS]
@@ -149,9 +151,8 @@ async def get_healthy_mirror() -> Optional[str]:
         if not healthy_mirrors_list:
             return None
 
-        # میرورهای ایرانی (5 مورد اول در MIRRORS)
-        iranian_mirrors = MIRRORS[:5]
-        healthy_iranian = [m for m in iranian_mirrors if m in healthy_mirrors_list]
+        # میرورهای ایرانی (اولویت اول — از IRANIAN_MIRRORS در proxy_config)
+        healthy_iranian = [m for m in IRANIAN_MIRRORS if m in healthy_mirrors_list]
 
         if healthy_iranian:
             return random.choice(healthy_iranian)
