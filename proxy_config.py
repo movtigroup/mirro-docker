@@ -10,6 +10,12 @@ IRANIAN_MIRRORS = [
     "https://docker.derak.cloud",
     "https://docker.devneeds.ir",
     "https://docker.hyperclouds.ir",
+    "https://docker-registry.rasanegaar.com",
+    "https://docker.mobinhost.com",
+    "https://docker.kernel.ir",
+    "https://mirrors.pardisco.co",
+    "https://focker.ir",
+    
 ]
 
 # --- میرورهای چینی ---
@@ -27,6 +33,7 @@ FOREIGN_MIRRORS = [
     "https://dockerhub.icu",
     "https://hub.uuuadc.top",
     "https://docker.awsl9527.cn",
+    "https://mirrors.tuna.tsinghua.edu.cn/",
 
     # --- اروپا، آمریکا و سایر مناطق ---
     "https://dockerproxy.net",
