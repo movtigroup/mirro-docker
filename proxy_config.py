@@ -1,8 +1,8 @@
 import ipaddress
 from urllib.parse import urlparse
 
-# --- میرورهای ایرانی (اولویت اول) ---
-IRANIAN_MIRRORS = [
+# --- Docker mirrors: ایران (اولویت اول برای /v2/*) ---
+DOCKER_IRANIAN_MIRRORS = [
     "https://docker.iranserver.com",
     "https://docker.abrha.net",
     "https://docker.arvancloud.ir",
@@ -12,8 +12,8 @@ IRANIAN_MIRRORS = [
     "https://docker.hyperclouds.ir",
 ]
 
-# --- میرورهای چینی ---
-FOREIGN_MIRRORS = [
+# --- Docker mirrors: خارجی ---
+DOCKER_FOREIGN_MIRRORS = [
     "https://docker.m.daocloud.io",
     "https://docker.mirrors.ustc.edu.cn",
     "https://hub-mirror.c.163.com",
@@ -46,6 +46,16 @@ FOREIGN_MIRRORS = [
     "https://ghcr.io",
 ]
 
+# --- Linux repository mirrors (برای مسیرهای غیر /v2/*) ---
+LINUX_REPO_MIRRORS = [
+    "https://miravaorg.ir/",
+    "https://mirror.rasanegaar.com/",
+    "https://github.com/MiravaOrg/Mirava",
+    "https://mirror.kargadan.ir/parch",
+    "https://linuxmirrors.ir/",
+    "https://parchlinux.com/en/repo",
+]
+
 
 def _is_valid_mirror(url: str) -> bool:
     """
@@ -68,7 +78,19 @@ def _is_valid_mirror(url: str) -> bool:
     return True
 
 
-MIRRORS = [u.rstrip("/") for u in IRANIAN_MIRRORS + FOREIGN_MIRRORS if _is_valid_mirror(u)]
+def _normalize(url: str) -> str:
+    return url.strip().rstrip("/")
+
+
+IRANIAN_MIRRORS = [_normalize(u) for u in DOCKER_IRANIAN_MIRRORS if _is_valid_mirror(u)]
+FOREIGN_MIRRORS = [_normalize(u) for u in DOCKER_FOREIGN_MIRRORS if _is_valid_mirror(u)]
+DOCKER_MIRRORS = list(dict.fromkeys(IRANIAN_MIRRORS + FOREIGN_MIRRORS))
+REPO_MIRRORS = [_normalize(u) for u in LINUX_REPO_MIRRORS if _is_valid_mirror(u)]
+
+MIRRORS = list(dict.fromkeys(DOCKER_MIRRORS + REPO_MIRRORS))
+
+# مسیر Health Check هر میرور (Docker ها با /v2/، سایر ریپوها با /)
+MIRROR_HEALTH_PATHS = {mirror: "/" for mirror in MIRRORS}
+MIRROR_HEALTH_PATHS.update({mirror: "/v2/" for mirror in DOCKER_MIRRORS})
 
 HEALTH_CHECK_INTERVAL = 60
-HEALTH_CHECK_PATH = "/v2/"

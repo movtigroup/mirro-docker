@@ -70,7 +70,7 @@ docker-compose up -d --build
 
 ## ⚙️ نحوه کار
 
-- **Health Check:** در پس‌زمینه، سرویس به طور دوره‌ای (پیش‌فرض هر ۶۰ ثانیه) همه میرورهای لیست را با ارسال درخواست `GET /v2/` بررسی می‌کند.
+- **Health Check:** در پس‌زمینه، سرویس به طور دوره‌ای (پیش‌فرض هر ۶۰ ثانیه) سلامت میرورها را بر اساس نوعشان بررسی می‌کند (`/v2/` برای Docker و `/` برای ریپوهای لینوکس).
 - **پراکسی معکوس:** درخواست کلاینت به یکی از میرورهای سالم (تصادفی) هدایت می‌شود.
 - **Stream:** پاسخ به صورت جریانی برگردانده می‌شود تا لایه‌های حجیم داکر بدون اشغال حافظه منتقل شوند.
 - **Failover:** اگر همه میرورها قطع باشند، خطای ۵۰۳ برگردانده می‌شود.
@@ -82,19 +82,28 @@ docker-compose up -d --build
 فایل `proxy_config.py` را ویرایش کنید:
 
 ```python
-IRANIAN_MIRRORS = [
+DOCKER_IRANIAN_MIRRORS = [
     "https://docker.iranserver.com",
     "https://docker.abrha.net",
     "https://docker.devneeds.ir",
     "https://docker.hyperclouds.ir",
 ]
 
-FOREIGN_MIRRORS = [
+DOCKER_FOREIGN_MIRRORS = [
     "https://mirror.hetzner.com",
     "https://docker.ovh.net",
     # ... موارد بیشتر اضافه کنید
 ]
+
+LINUX_REPO_MIRRORS = [
+    "https://miravaorg.ir",
+    "https://mirror.rasanegaar.com",
+    "https://mirror.kargadan.ir/parch",
+    # ... موارد بیشتر اضافه کنید
+]
 ```
+
+> مسیرهای `/v2/*` فقط از Docker mirrors سرویس می‌گیرند و سایر مسیرها از `LINUX_REPO_MIRRORS`.
 
 پس از تغییر، سرویس را ری‌استارت کنید:
 

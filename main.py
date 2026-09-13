@@ -6,7 +6,14 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import StreamingResponse
 import httpx
 
-from proxy_config import MIRRORS, IRANIAN_MIRRORS, HEALTH_CHECK_INTERVAL, HEALTH_CHECK_PATH
+from proxy_config import (
+    MIRRORS,
+    IRANIAN_MIRRORS,
+    DOCKER_MIRRORS,
+    REPO_MIRRORS,
+    MIRROR_HEALTH_PATHS,
+    HEALTH_CHECK_INTERVAL,
+)
 
 app = FastAPI(title="Docker Mirror Proxy")
 
@@ -17,11 +24,11 @@ health_lock = asyncio.Lock()
 # توجه: در یک اپلیکیشن بزرگتر، این مدیریت منابع باید بهینه‌تر باشد.
 client_pool = {}
 
-async def get_client():
+async def get_client(request_path: str):
     """
     یک کلاینت httpx برای دسترسی به mirror ها برمی‌گرداند.
     """
-    mirror_url = await get_healthy_mirror()
+    mirror_url = await get_healthy_mirror(request_path)
     if not mirror_url:
         return None, None
 
@@ -58,10 +65,11 @@ async def check_mirror_health(mirror: str, client: httpx.AsyncClient) -> bool:
     سلامت یک mirror را بررسی می کند.
     """
     try:
-        url = f"{mirror.rstrip('/')}/{HEALTH_CHECK_PATH.lstrip('/')}"
+        health_path = MIRROR_HEALTH_PATHS.get(mirror, "/")
+        url = f"{mirror.rstrip('/')}/{health_path.lstrip('/')}"
         response = await client.get(url, timeout=5.0)
         # کد 401 چالش احراز هویت استاندارد Docker Registry است؛ یعنی میرور زنده است.
-        return response.is_success or response.status_code == 401
+        return response.is_success or response.status_code in (401, 403)
     except Exception as e:
         # print(f"[HEALTH_CHECK_FAIL] {mirror}: {e}") # برای دیباگ کردن خطاهای سلامت
         return False
@@ -142,7 +150,7 @@ async def shutdown():
     await close_clients()
 
 
-async def get_healthy_mirror() -> Optional[str]:
+async def get_healthy_mirror(request_path: str) -> Optional[str]:
     """
     یک mirror سالم را انتخاب و برمی گرداند.
     اولویت با میرورهای ابتدای لیست (میرورهای ایرانی) است.
@@ -151,14 +159,20 @@ async def get_healthy_mirror() -> Optional[str]:
         if not healthy_mirrors_list:
             return None
 
-        # میرورهای ایرانی (اولویت اول — از IRANIAN_MIRRORS در proxy_config)
-        healthy_iranian = [m for m in IRANIAN_MIRRORS if m in healthy_mirrors_list]
+        use_docker_mirrors = request_path.startswith("v2/")
+        candidate_mirrors = DOCKER_MIRRORS if use_docker_mirrors else REPO_MIRRORS
+        healthy_candidates = [m for m in candidate_mirrors if m in healthy_mirrors_list]
 
-        if healthy_iranian:
-            return random.choice(healthy_iranian)
+        if not healthy_candidates:
+            return None
 
-        # اگر میرور ایرانی سالمی نبود، از بقیه موارد به صورت تصادفی انتخاب کن
-        return random.choice(healthy_mirrors_list)
+        # میرورهای ایرانی فقط برای Docker اولویت دارند.
+        if use_docker_mirrors:
+            healthy_iranian = [m for m in IRANIAN_MIRRORS if m in healthy_candidates]
+            if healthy_iranian:
+                return random.choice(healthy_iranian)
+
+        return random.choice(healthy_candidates)
 
 
 def parse_range_header(range_header: str) -> Optional[Tuple[int, Optional[int]]]:
@@ -184,13 +198,9 @@ async def proxy(path: str, request: Request):
     """
     درخواست ها را به یکی از mirror های سالم پرواکسی می کند.
     """
-    client, mirror = await get_client()
+    client, mirror = await get_client(path)
     if client is None or mirror is None:
-        return Response(content="No healthy mirror available", status_code=503, media_type="text/plain")
-
-    # فقط درخواست های مربوط به Docker Registry API (v2) را پرواکسی می کنیم
-    if not path.startswith("v2/"):
-        return Response(content="Docker Registry API must start with /v2/", status_code=404, media_type="text/plain")
+        return Response(content="No healthy mirror available for requested path", status_code=503, media_type="text/plain")
 
     # ساخت URL مقصد
     clean_mirror = mirror.rstrip('/')

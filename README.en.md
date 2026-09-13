@@ -67,7 +67,7 @@ docker-compose up -d --build
 
 ## ⚙️ How it Works
 
-- **Health Check:** The service periodically (default: 60s) checks all mirrors in the list by sending a `GET /v2/` request.
+- **Health Check:** The service periodically (default: 60s) checks mirror health by type (`/v2/` for Docker mirrors, `/` for Linux repository mirrors).
 - **Reverse Proxy:** Client requests are routed to one of the healthy mirrors (randomly selected).
 - **Streaming:** Responses are streamed to handle large Docker layers without high memory consumption.
 - **Failover:** If all mirrors are down, it returns a 503 error.
@@ -79,14 +79,26 @@ docker-compose up -d --build
 Edit `proxy_config.py`:
 
 ```python
-MIRRORS = [
+DOCKER_IRANIAN_MIRRORS = [
     "https://docker.iranserver.com",
+    "https://docker.abrha.net",
+]
+
+DOCKER_FOREIGN_MIRRORS = [
     "https://docker.m.daocloud.io",
-    "https://mirror.hetzner.com",
     "https://docker.ovh.net",
-    # ... add more
+    # ... add more Docker mirrors
+]
+
+LINUX_REPO_MIRRORS = [
+    "https://miravaorg.ir",
+    "https://mirror.rasanegaar.com",
+    "https://mirror.kargadan.ir/parch",
+    # ... add more Linux repository mirrors
 ]
 ```
+
+> Requests under `/v2/*` are routed only to Docker mirrors; other paths are routed to `LINUX_REPO_MIRRORS`.
 
 Restart the service after changes:
 
