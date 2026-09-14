@@ -16,8 +16,11 @@ IRANIAN_MIRRORS = [
     "https://mirrors.pardisco.co",
     "https://focker.ir",
     "https://hub.megan.ir",
+    "https://mirrors.pardisco.co",
+    "https://hub.atlantiscloud.ir",
+    "https://ghcr.atlantiscloud.ir",
+    "https://quay.atlantiscloud.ir",
     "https://focker.ir",
-    
 ]
 
 # --- میرورهای چینی ---
