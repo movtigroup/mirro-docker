@@ -15,6 +15,8 @@ IRANIAN_MIRRORS = [
     "https://docker.kernel.ir",
     "https://mirrors.pardisco.co",
     "https://focker.ir",
+    "https://hub.megan.ir",
+    "https://focker.ir",
     
 ]
 
