@@ -20,7 +20,11 @@ IRANIAN_MIRRORS = [
     "https://hub.atlantiscloud.ir",
     "https://ghcr.atlantiscloud.ir",
     "https://quay.atlantiscloud.ir",
-    "https://focker.ir",
+    "https://docker.DockerMe.ir",
+    "https://registry.docker.ir",
+    "https://docker-mirror.kargadan.ir",
+    "https://docker-quay-mirror.kargadan.ir",
+    
 ]
 
 # --- میرورهای چینی ---
