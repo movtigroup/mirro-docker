@@ -43,7 +43,10 @@ FOREIGN_MIRRORS = [
     "https://hub.uuuadc.top",
     "https://docker.awsl9527.cn",
     "https://mirrors.tuna.tsinghua.edu.cn/",
+    "https://docker.1ms.run",
+    
 
+    
     # --- اروپا، آمریکا و سایر مناطق ---
     "https://dockerproxy.net",
     "https://docker.imgdb.de",
