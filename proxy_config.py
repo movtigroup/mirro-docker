@@ -24,6 +24,10 @@ IRANIAN_MIRRORS = [
     "https://registry.docker.ir",
     "https://docker-mirror.kargadan.ir",
     "https://docker-quay-mirror.kargadan.ir",
+    "https://docker.manageitcloud.com",
+    "https://docker.novin.cloud",
+    "https://registry.fluxcdn.cloud",
+    "https://hub.mecan.ir",
     
 ]
 
